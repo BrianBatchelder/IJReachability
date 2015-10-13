@@ -27,18 +27,18 @@ public class IJReachability {
         zeroAddress.sin_family = sa_family_t(AF_INET)
         
         let defaultRouteReachability = withUnsafePointer(&zeroAddress) {
-            SCNetworkReachabilityCreateWithAddress(nil, UnsafePointer($0)).takeRetainedValue()
+            SCNetworkReachabilityCreateWithAddress(nil, UnsafePointer($0))
         }
         
-        var flags: SCNetworkReachabilityFlags = 0
-        if SCNetworkReachabilityGetFlags(defaultRouteReachability, &flags) == 0 {
+        var flags: SCNetworkReachabilityFlags = SCNetworkReachabilityFlags()
+        if !SCNetworkReachabilityGetFlags(defaultRouteReachability!, &flags) {
             return false
         }
         
-        let isReachable = (flags & UInt32(kSCNetworkFlagsReachable)) != 0
-        let needsConnection = (flags & UInt32(kSCNetworkFlagsConnectionRequired)) != 0
-        
-        return (isReachable && !needsConnection) ? true : false
+        let isReachable = flags.contains(.Reachable)
+        let needsConnection = flags.contains(.ConnectionRequired)
+
+        return (isReachable && !needsConnection)
     }
     
     public class func isConnectedToNetworkOfType() -> IJReachabilityType {
@@ -48,29 +48,25 @@ public class IJReachability {
         zeroAddress.sin_family = sa_family_t(AF_INET)
         
         let defaultRouteReachability = withUnsafePointer(&zeroAddress) {
-            SCNetworkReachabilityCreateWithAddress(nil, UnsafePointer($0)).takeRetainedValue()
-        }
+            SCNetworkReachabilityCreateWithAddress(nil, UnsafePointer($0))        }
         
-        var flags: SCNetworkReachabilityFlags = 0
-        if SCNetworkReachabilityGetFlags(defaultRouteReachability, &flags) == 0 {
+        var flags: SCNetworkReachabilityFlags = SCNetworkReachabilityFlags()
+        if !SCNetworkReachabilityGetFlags(defaultRouteReachability!, &flags) {
             return .NotConnected
         }
         
-        let isReachable = (flags & UInt32(kSCNetworkFlagsReachable)) != 0
-        let isWWAN = (flags & UInt32(kSCNetworkReachabilityFlagsIsWWAN)) != 0
-        //let isWifI = (flags & UInt32(kSCNetworkReachabilityFlagsReachable)) != 0
-        
-        if(isReachable && isWWAN){
-            return .WWAN
-        }
-        if(isReachable && !isWWAN){
-            return .WiFi
+        let isReachable = flags.contains(.Reachable)
+        let isWWAN = flags.contains(.IsWWAN)
+       
+        if (isReachable) {
+            if (isWWAN) {
+                return .WWAN
+            } else {
+                return .WiFi
+            }
         }
         
         return .NotConnected
-        //let needsConnection = (flags & UInt32(kSCNetworkFlagsConnectionRequired)) != 0
-        
-        //return (isReachable && !needsConnection) ? true : false
     }
     
 }
